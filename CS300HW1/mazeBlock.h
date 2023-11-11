@@ -38,7 +38,7 @@ class mazeBlock
     friend ostream & operator<<(ostream &out, const mazeBlock &block);
 };
 
-
+// Kanat Ozgen
 #include "mazeBlock.hpp"
 
 #endif
