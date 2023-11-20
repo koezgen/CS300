@@ -2,7 +2,6 @@
 #include <sstream>
 #include <fstream>
 #include <string>
-#include <utility>
 #include <vector>
 #include <cctype>
 #include "AVLSearchTree.h"
@@ -27,9 +26,16 @@ struct DocumentItem {
 };
 
 struct WordItem {
+    WordItem() : left(nullptr), right(nullptr), height(0) {}
+    WordItem( const string & theElement, WordItem *lt, WordItem *rt, int h = 0 )
+            : word( theElement ), left( lt ), right( rt ), height( h ) { }
     string word;
+    WordItem* left;
+    WordItem* right;
     vector<DocumentItem> details;
+    int height;
 };
+
 
 struct FileContents {
     string FileName;
@@ -86,7 +92,8 @@ bool isInside(string filename, vector<textFile> textfile)
 int main() {
 
     // The Tree of Life
-    AVLSearchTree<string, WordItem *> myTree;
+    const string ITEM_NOT_FOUND = "-9999999999999999";
+    AVLSearchTree<string, WordItem *> myTree(ITEM_NOT_FOUND);
 
     // The variables that will hold the necessary
     // Information in gathering the file names.
@@ -133,10 +140,13 @@ int main() {
 
     // TODO: Write the AVL Search Tree Functionality in finding the number counts in different files.
 
+    cin.clear();
+    cin.ignore();
+
     // Get the input line from the user.
     string input_line;
     cout << endl << "Enter queried words in one line: ";
-    cin >> input_line;
+    getline(cin, input_line);
     while (input_line != "ENDOFINPUT")
     {
         // First we need to parse the input line into a vector array.
