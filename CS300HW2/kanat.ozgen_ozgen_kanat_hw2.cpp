@@ -10,8 +10,6 @@ using namespace std;
 
 // Kanat Ozgen
 
-
-
 struct wordcount {
     string wordname;
     int count;
@@ -115,8 +113,16 @@ int main() {
     {
         ifstream file;
         file.open(file_names[i]);
+
+        // Get the file into a string.
         string processed_file;
-        file >> processed_file;
+        string line;
+
+        while (getline(file, line))
+        {
+            processed_file = processed_file + line;
+        }
+
         file.close();
 
         processed_file = tolowercase(processed_file);
