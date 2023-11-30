@@ -9,46 +9,6 @@ using namespace std;
 
 // Kanat Ozgen
 
-struct wordcount {
-    string wordname;
-    int count;
-};
-
-struct textFile {
-
-    string fileName;
-    vector<wordcount> word_count;
-};
-
-struct DocumentItem {
-    string documentName;
-    int count;
-};
-
-struct WordItem {
-    WordItem() : left(nullptr), right(nullptr), height(0) {}
-    WordItem( const string & theElement, WordItem *lt, WordItem *rt, int h = 0 )
-            : word( theElement ), left( lt ), right( rt ), height( h ) { }
-    string word;
-    WordItem* left;
-    WordItem* right;
-    vector<DocumentItem> details;
-    int height;
-};
-
-
-struct FileContents {
-    string FileName;
-    string FileContent;
-
-    FileContents(string filename, string content);
-};
-
-FileContents::FileContents(string filename, string content) {
-    FileName = filename;
-    FileContent = content;
-}
-
 string tolowercase(string & str)
 {
     string var = str;
@@ -89,11 +49,25 @@ bool isInside(string filename, vector<textFile> textfile)
     return flag;
 }
 
+bool isInside(string filename, vector<DocumentItem> textfile)
+{
+    bool flag = false;
+
+    for (int i = 0; i < textfile.size(); i++)
+    {
+        if (textfile[i].documentName == filename)
+        {
+            flag = true;
+        }
+    }
+
+    return flag;
+}
+
 int main() {
 
     // The Tree of Life
-    const string ITEM_NOT_FOUND = "-9999999999999999";
-    AVLSearchTree<string, WordItem *> myTree(ITEM_NOT_FOUND);
+    AVLSearchTree<string, WordItem *> myTree("item_not_found");
 
     // The variables that will hold the necessary
     // Information in gathering the file names.
@@ -111,8 +85,6 @@ int main() {
         file_names.push_back(file_name);
     }
 
-    // TODO: Necessary implementation for data structures.
-
     // Process the files and hold them inside a dynamically allocated
     // Array that holds the file data and the file name.
     vector<FileContents> file_contents;
@@ -120,25 +92,61 @@ int main() {
     {
         ifstream file;
         file.open(file_names[i]);
-
-        // Get the file into a string.
         string processed_file;
-        string line;
 
-        while (getline(file, line))
+        while (!file.eof())
         {
-            processed_file = processed_file + line;
+            string line;
+            getline(file, line);
+            processed_file += line + " ";
         }
 
-        file.close();
-
         processed_file = tolowercase(processed_file);
+        vector<string> parsed_processed_file = return_parsed_input(processed_file);
 
-        FileContents filecontent(file_names[i], processed_file);
+        FileContents filecontent(file_names[i], parsed_processed_file);
         file_contents.push_back(filecontent);
     }
 
-    // TODO: Write the AVL Search Tree Functionality in finding the number counts in different files.
+    for (int i = 0; i < file_contents.size(); i++)
+    {
+        for (int j = 0; j < file_contents[i].FileContent.size(); j++)
+        {
+            // Checking if the word appears in the tree
+            if (myTree.find(file_contents[i].FileContent[j])->word == "item_not_found")
+            {
+                myTree.insert(file_contents[i].FileContent[j]);
+                WordItem *worditem = myTree.find(file_contents[i].FileContent[j]);
+                DocumentItem documentitem;
+                documentitem.documentName = file_contents[i].FileName;
+                documentitem.count = 1;
+                worditem->details.push_back(documentitem);
+            }
+
+            else
+            {
+                WordItem *worditem = myTree.find(file_contents[i].FileContent[j]);
+                if (isInside(file_contents[i].FileName, worditem->details))
+                {
+                    for (int k = 0; k < worditem->details.size(); k++)
+                    {
+                        if (worditem->details[k].documentName == file_contents[i].FileName)
+                        {
+                            worditem->details[k].count++;
+                        }
+                    }
+                }
+
+                else
+                {
+                    DocumentItem documentitem;
+                    documentitem.documentName = file_contents[i].FileName;
+                    documentitem.count = 1;
+                    worditem->details.push_back(documentitem);
+                }
+            }
+        }
+    }
 
     cin.clear();
     cin.ignore();
@@ -165,7 +173,8 @@ int main() {
             // Loop to actually remove everything that comes after the remove keyword.
             while (parsed_input.size() != 1)
             {
-                cout << parsed_input.at(parsed_input.size() - 1) << "has been REMOVED" << endl;
+                myTree.remove(parsed_input.at(parsed_input.size() - 1));
+                cout << parsed_input.at(parsed_input.size() - 1) << " has been REMOVED" << endl;
                 parsed_input.pop_back();
             }
         }
@@ -174,27 +183,42 @@ int main() {
         {
             for (int i = 0; i < parsed_input.size(); i++)
             {
-                // TODO: Get the response from the AVL for this word.
+                WordItem *worditem = myTree.find(parsed_input[i]);
 
-                WordItem worditem;
-                // Add the files to the file_responses vector if the file
-                // Is not present in the array.
-
-                for (int i = 0; i < worditem.details.size(); i++)
+                if (worditem->word != "item_not_found")
                 {
-                    if (!isInside(worditem.details[i].documentName, file_responses))
+                    for (int i = 0; i < worditem->details.size(); i++)
                     {
-                        textFile textfile;
-                        textfile.fileName = worditem.details[i].documentName;
+                        if (!isInside(worditem->details[i].documentName, file_responses))
+                        {
+                            textFile textfile;
+                            textfile.fileName = worditem->details[i].documentName;
 
-                        wordcount wcount;
-                        wcount.wordname = worditem.word;
+                            wordcount wcount;
+                            wcount.wordname = worditem->word;
 
-                        textfile.word_count.push_back(wcount);
+                            textfile.word_count.push_back(wcount);
 
-                        file_responses.push_back(textfile);
+                            file_responses.push_back(textfile);
+                        }
+
+                        else
+                        {
+                            for (int j = 0; j < file_responses.size(); j++)
+                            {
+                                if (file_responses[j].fileName == worditem->details[i].documentName)
+                                {
+                                    wordcount wcount;
+                                    wcount.wordname = worditem->word;
+                                    wcount.count = worditem->details[i].count;
+
+                                    file_responses[j].word_count.push_back(wcount);
+                                }
+                            }
+                        }
                     }
                 }
+
             }
 
             if (file_responses.empty())
@@ -210,19 +234,29 @@ int main() {
 
                     while (!file_responses[i].word_count.empty())
                     {
-                        cout << file_responses[i].word_count[file_responses[i].word_count.size() - 1].wordname << "found "
-                             << file_responses[i].word_count[file_responses[i].word_count.size() - 1].count << "times, ";
+                        cout << file_responses[i].word_count[file_responses[i].word_count.size() - 1].wordname << " was found "
+                             << file_responses[i].word_count[file_responses[i].word_count.size() - 1].count << " times";
                         file_responses[i].word_count.pop_back();
+
+                        if (!file_responses[i].word_count.empty())
+                        {
+                            cout << ", ";
+                        }
                     }
+
+                    cout << endl;
+
                 }
+
+                cout << endl;
+
             }
 
         }
 
         cout << "Enter queried words in one line: ";
-        cin >> input_line;
+        getline(cin, input_line);
     }
-
 
     return 0;
 }

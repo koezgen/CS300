@@ -5,19 +5,60 @@
 #ifndef CS300HW2_AVLSEARCHTREE_H
 #define CS300HW2_AVLSEARCHTREE_H
 
+#include <sstream>
+
+using namespace std;
+
+struct wordcount {
+    string wordname;
+    int count;
+};
+
+struct textFile {
+
+    string fileName;
+    vector<wordcount> word_count;
+};
+
+struct DocumentItem {
+    string documentName;
+    int count;
+};
+
+struct WordItem {
+    WordItem(string word) : word(word), left(nullptr), right(nullptr), height(0) {}
+    WordItem( const string & theElement, WordItem *lt, WordItem *rt, int h = 0 )
+            : word( theElement ), left( lt ), right( rt ), height( h ) { }
+    string word;
+    WordItem* left;
+    WordItem* right;
+    vector<DocumentItem> details;
+    int height;
+};
+
+struct FileContents {
+    string FileName;
+    vector<string> FileContent;
+
+    FileContents(string filename, vector<string> content);
+};
+
+FileContents::FileContents(string filename, vector<string> content) {
+    FileName = filename;
+    FileContent = content;
+}
 // Key is the COMPARABLE
 // Value is the POINTER TO TREE NODE
 template <class Key, class Value>
 class AVLSearchTree
 {
 public:
-    explicit AVLSearchTree( const Key & notFound );
-    AVLSearchTree( const AVLSearchTree<Key, Value>& rhs);
+    explicit AVLSearchTree(Key notFound);
     ~AVLSearchTree( );
 
     const Value & findMin( ) const;
     const Value & findMax( ) const;
-    const Value & find( const Key & x ) const;
+    Value find( Key x ) const;
 
     void makeEmpty( );
     void insert( const Key & x );
@@ -25,7 +66,7 @@ public:
 
 private:
     Value root;
-    const Key ITEM_NOT_FOUND;
+    Value ITEM_NOT_FOUND;
 
     const Key & elementAt( Value t ) const;
 
@@ -34,7 +75,7 @@ private:
 
     Value findMin( Value t ) const;
     Value findMax( Value t ) const;
-    Value find( const Key & x, Value t ) const;
+    Value find( Key x, Value t ) const;
     void makeEmpty( Value & t ) const;
 
     // Avl manipulations
@@ -47,16 +88,10 @@ private:
 };
 
 template<class Key, class Value>
-AVLSearchTree<Key, Value>::AVLSearchTree(const Key &notFound) {
-    ITEM_NOT_FOUND = notFound;
-    root = NULL;
-}
-
-template<class Key, class Value>
-AVLSearchTree<Key, Value>::AVLSearchTree(const AVLSearchTree<Key, Value> &rhs)
-: root( NULL ), ITEM_NOT_FOUND( rhs.ITEM_NOT_FOUND )
+AVLSearchTree<Key, Value>::AVLSearchTree(Key notFound)
+    : ITEM_NOT_FOUND(new WordItem(notFound))
 {
-    *this = rhs;
+    root = NULL;
 }
 
 template<class Key, class Value>
@@ -75,8 +110,8 @@ const Value &AVLSearchTree<Key, Value>::findMax() const {
 }
 
 template<class Key, class Value>
-const Value &AVLSearchTree<Key, Value>::find(const Key &x) const {
-    return elementAt( find( x, root ) );
+Value AVLSearchTree<Key, Value>::find(Key x) const {
+    return find( x, root );
 }
 
 template<class Key, class Value>
@@ -94,44 +129,45 @@ void AVLSearchTree<Key, Value>::remove(const Key &x) {
     remove( x, root );
 }
 
-
 template<class Key, class Value>
 const Key &AVLSearchTree<Key, Value>::elementAt(Value t) const {
-    return t == NULL ? ITEM_NOT_FOUND : t->element;
+    if (t == NULL) {
+        return ITEM_NOT_FOUND->word; // Assuming ITEM_NOT_FOUND is a Key
+    }
+    return t->word; // Assuming 'word' is a Key (std::string) in the WordItem
 }
 
 template<class Key, class Value>
 void AVLSearchTree<Key, Value>::insert(const Key &x, Value &t) const {
-    if ( t == NULL )
-        t = new Value( x, NULL, NULL );
+    if (t == NULL) {
+        t = new WordItem(x); }
 
-    else if ( x < t->element ) {
+    else if ( x < t->word ) {
         // X should be inserted to the left tree!
         insert( x, t->left );
 
         // Check if the left tree is out of balance (left subtree grew in height!)
         if ( height( t->left ) - height( t->right ) == 2 )
-            if ( x < t->left->element )  // X was inserted to the left-left subtree!
+            if ( x < t->left->word )  // X was inserted to the left-left subtree!
                 rotateWithLeftChild( t );
             else			     // X was inserted to the left-right subtree!
                 doubleWithLeftChild( t );
     }
 
-    else if( t->element < x )
+    else if( t->word < x )
     {    // Otherwise X is inserted to the right subtree
         insert( x, t->right );
         if ( height( t->right ) - height( t->left ) == 2 )
             // height of the right subtree increased
-            if ( t->right->element < x )
+            if ( t->right->word < x )
                 // X was inserted to right-right subtree
                 rotateWithRightChild( t );
             else // X was inserted to right-left subtree
                 doubleWithRightChild( t );
     }
     else
-        ;  // Duplicate; do nothing
+        ;
 
-    // update the height the node
     t->height = max( height( t->left ), height( t->right ) ) + 1;
 
 }
@@ -140,18 +176,18 @@ template<class Key, class Value>
 void AVLSearchTree<Key, Value>::remove(const Key &x, Value &t) const {
     if( t == NULL )
         return;   // Item not found; do nothing
-    if( x < t->element )
+    if( x < t->word )
         remove( x, t->left );
-    else if( t->element < x )
+    else if( t->word < x )
         remove( x, t->right );
     else if( t->left != NULL && t->right != NULL ) // Two children
     {
-        t->element = findMin( t->right )->element;
-        remove( t->element, t->right );
+        t->word = findMin(t->right)->word;  // Get the minimum word from the right subtree
+        remove(t->word, t->right);
     }
     else // one or no children
     {
-        Value *oldNode = t;
+        Value oldNode = t;
         t = ( t->left != NULL ) ? t->left : t->right;
         delete oldNode;
     }
@@ -175,15 +211,16 @@ Value AVLSearchTree<Key, Value>::findMax(Value t) const {
 }
 
 template<class Key, class Value>
-Value AVLSearchTree<Key, Value>::find(const Key &x, Value t) const {
-    if ( t == NULL )
-        return NULL;
-    else if( x < t->element )
+Value AVLSearchTree<Key, Value>::find(Key x, Value t) const
+{
+    if ( t == nullptr )
+        return ITEM_NOT_FOUND;
+    else if( x < t->word )
         return find( x, t->left );
-    else if( t->element < x )
+    else if( t->word < x )
         return find( x, t->right );
     else
-        return t;
+        return t;    // Match
 }
 
 template<class Key, class Value>
