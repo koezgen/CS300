@@ -3,6 +3,10 @@
 //
 
 #include <iostream>
+#include "HashTable.h"
+#include "BinarySearchTree.h"
+
+using namespace std;
 
 int main()
 {
