@@ -5,4 +5,10 @@
 #ifndef CS300HW3_HASHTABLE_H
 #define CS300HW3_HASHTABLE_H
 
-#endif //CS300HW3_HASHTABLE_H
+class HashTable
+{
+    private:
+    public:
+};
+
+#endif
