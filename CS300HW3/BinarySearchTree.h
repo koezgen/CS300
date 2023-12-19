@@ -6,47 +6,9 @@
 #define CS300HW3_BINARYSEARCHTREE_H
 
 #include <sstream>
-
+#include "structs.h"
 using namespace std;
 
-struct wordcount {
-    string wordname;
-    int count;
-};
-
-struct textFile {
-
-    string fileName;
-    vector<wordcount> word_count;
-};
-
-struct DocumentItem {
-    string documentName;
-    int count;
-};
-
-struct WordItem {
-    WordItem(string word) : word(word), left(nullptr), right(nullptr), height(0) {}
-    WordItem( const string & theElement, WordItem *lt, WordItem *rt, int h = 0 )
-            : word( theElement ), left( lt ), right( rt ), height( h ) { }
-    string word;
-    WordItem* left;
-    WordItem* right;
-    vector<DocumentItem> details;
-    int height;
-};
-
-struct FileContents {
-    string FileName;
-    vector<string> FileContent;
-
-    FileContents(string filename, vector<string> content);
-};
-
-FileContents::FileContents(string filename, vector<string> content) {
-    FileName = filename;
-    FileContent = content;
-}
 // Key is the COMPARABLE
 // Value is the POINTER TO TREE NODE
 template <class Key, class Value>
@@ -77,14 +39,6 @@ private:
     Value findMax( Value t ) const;
     Value find( Key x, Value t ) const;
     void makeEmpty( Value & t ) const;
-
-    // Avl manipulations
-    int height( Value t ) const;
-    int max( int lhs, int rhs ) const;
-    void rotateWithLeftChild( Value & k2 ) const;
-    void rotateWithRightChild( Value & k1 ) const;
-    void doubleWithLeftChild( Value & k3 ) const;
-    void doubleWithRightChild( Value & k1 ) const;
 };
 
 template<class Key, class Value>
@@ -153,8 +107,6 @@ void BinarySearchTree<Key, Value>::insert(const Key &x, Value &t) const {
     }
     else
         ; // Why spend CPU Clock on this????
-
-    t->height = max( height( t->left ), height( t->right ) ) + 1;
 }
 
 template<class Key, class Value>
@@ -217,54 +169,6 @@ void BinarySearchTree<Key, Value>::makeEmpty(Value &t) const {
         delete t;
     }
     t = NULL;
-}
-
-template<class Key, class Value>
-int BinarySearchTree<Key, Value>::height(Value t) const {
-    if (t == NULL)
-        return -1;
-
-    return t->height;
-}
-
-template<class Key, class Value>
-int BinarySearchTree<Key, Value>::max(int lhs, int rhs) const {
-    if (lhs > rhs)
-        return lhs;
-
-    return rhs;
-}
-
-template<class Key, class Value>
-void BinarySearchTree<Key, Value>::rotateWithLeftChild(Value &k2) const {
-    Value k1 = k2->left;
-    k2->left = k1->right;
-    k1->right = k2;
-    k2->height = max( height( k2->left ), height( k2->right ) ) + 1;
-    k1->height = max( height( k1->left ), k2->height ) + 1;
-    k2 = k1;
-}
-
-template<class Key, class Value>
-void BinarySearchTree<Key, Value>::rotateWithRightChild(Value &k1) const {
-    Value k2 = k1->right;
-    k1->right = k2->left;
-    k2->left = k1;
-    k1->height = max( height( k1->left ), height( k1->right ) ) + 1;
-    k2->height = max( height( k2->right ), k1->height ) + 1;
-    k1 = k2;
-}
-
-template<class Key, class Value>
-void BinarySearchTree<Key, Value>::doubleWithLeftChild(Value &k3) const {
-    rotateWithRightChild( k3->left );
-    rotateWithLeftChild( k3 );
-}
-
-template<class Key, class Value>
-void BinarySearchTree<Key, Value>::doubleWithRightChild(Value &k1) const {
-    rotateWithLeftChild( k1->right );
-    rotateWithRightChild( k1 );
 }
 
 #endif //CS300HW3_BINARYSEARCHTREE_H
