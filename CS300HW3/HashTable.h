@@ -9,6 +9,7 @@
 #include <string>
 #include <iostream>
 #include "structs.h"
+#define HASH_TABLE_LOAD_PARAMETER 0.85
 using namespace std;
 
 bool isPrime( int n )
@@ -47,10 +48,15 @@ public:
               array( rhs.array ), currentSize( rhs.currentSize ) { }
 
     const HashedObj & find( const HashedObj & x ) const;
-
+    double loadFactor() const {
+        return static_cast<double>(currentSize) / static_cast<double>(array.size());
+    }
     void makeEmpty( );
     void insert( const HashedObj & x );
     void remove( const HashedObj & x );
+
+    int unique_words();
+    void increment_unique();
 
     enum EntryType { ACTIVE, EMPTY, DELETED };
 
@@ -67,6 +73,7 @@ private:
 
     vector<HashEntry> array;
     int currentSize;
+    int unique;
     const HashedObj ITEM_NOT_FOUND;
 
     [[nodiscard]] bool isActive( int currentPos ) const;
@@ -83,20 +90,53 @@ HashTable<HashedObj>::HashTable( const HashedObj & notFound,
 }
 
 template <class HashedObj>
-int HashTable<HashedObj>::findPos( const HashedObj & x ) const
+int HashTable<HashedObj>::unique_words()
 {
-    int collisionNum = 0;
-    int currentPos = hash( x, array.size( ) );
+    return unique;
+}
 
-    while ( array[ currentPos ].info != EMPTY &&
-            array[ currentPos ].element != x )
-    {
-        currentPos += pow(++collisionNum, 2) ;  //add the difference
-        if ( currentPos >= array.size( ) )              // perform the mod
-            currentPos -= array.size( );                // if necessary
+template <class HashedObj>
+void HashTable<HashedObj>::increment_unique()
+{
+    unique++;
+}
+
+template <class HashedObj>
+int hashFunc(const HashedObj& obj, int tableSize) {
+    const string& key = obj->word;
+    int hashVal = 0;
+
+    for (char ch : key) {
+        hashVal = 37 * hashVal + ch;
+    }
+
+    hashVal %= tableSize;
+    if (hashVal < 0) {
+        hashVal += tableSize;
+    }
+
+    return hashVal;
+}
+
+template <class HashedObj>
+int HashTable<HashedObj>::findPos(const HashedObj& x) const {
+    int currentPos = hashFunc(x, array.size()); // Initial position
+    int collisionNum = 0;
+
+    // Loop until we find an empty spot or the element itself
+    while (array[currentPos].info != EMPTY && array[currentPos].element->word != x->word) {
+        collisionNum++;
+        currentPos = hashFunc(x, array.size()) + collisionNum * collisionNum; // Recompute position
+        currentPos %= array.size(); // Ensure the position is within bounds
+
+        // Fail-safe to avoid infinite loops
+        if (collisionNum >= array.size()) {
+            return -1; // Table is full or cannot find a spot
+        }
     }
     return currentPos;
 }
+
 
 template <class HashedObj>
 bool HashTable<HashedObj>::isActive( int currentPos ) const
@@ -113,14 +153,15 @@ void HashTable<HashedObj>::remove( const HashedObj & x )
 }
 
 template <class HashedObj>
-const HashedObj & HashTable<HashedObj>::find( const HashedObj & x )
-const
-{
-    int currentPos = findPos( x );
-    if (isActive( currentPos ))
-        return array[ currentPos ].element;
+const HashedObj & HashTable<HashedObj>::find(const HashedObj & x) const {
+    int currentPos = findPos(x);  // Find the position of x in the hash table
 
-    return   ITEM_NOT_FOUND;
+    // Check if the element at currentPos is active and equals x
+    if (isActive(currentPos) && array[currentPos].element->word == x->word) {
+        return array[currentPos].element;  // Element found, return it
+    } else {
+        return ITEM_NOT_FOUND;  // Element not found, return ITEM_NOT_FOUND
+    }
 }
 
 template <class HashedObj>
@@ -133,8 +174,9 @@ void HashTable<HashedObj>::insert( const HashedObj & x )
     array[ currentPos ] = HashEntry( x, ACTIVE );
 
     // enlarge the hash table if necessary
-    if ( ++currentSize >= array.size( ) / 2 )
-        rehash( );
+    if (++currentSize >= static_cast<int>(array.size() * HASH_TABLE_LOAD_PARAMETER)) {
+        rehash();
+    }
 }
 
 template <class HashedObj>
@@ -152,6 +194,9 @@ void HashTable<HashedObj>::rehash( )
     for ( int i = 0; i < oldArray.size( ); i++ )
         if ( oldArray[ i ].info == ACTIVE )
             insert( oldArray[ i ].element );
+
+    cout << "rehashed..." << endl;
+    cout << "Previous table size: " << oldArray.size() << ", new table size: " << array.size() << ", current unique word count: " << unique_words() << ", current load factor: " << loadFactor() << endl;
 }
 
 template <class HashedObj>

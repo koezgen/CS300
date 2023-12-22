@@ -99,111 +99,23 @@ vector<string> return_parsed_input(string & input)
     return parsed;
 }
 
-void QueryDocuments(HashTable<WordItem*>* hash, const string& input_line)
+void QueryDocuments(HashTable<WordItem*>* hashTable, string input_line)
 {
-    // TODO : IMPLEMENT THE HASH TABLE
+    vector<string> parsed_input = return_parsed_input(input_line);
+    for (int i = 0; i < parsed_input.size(); i++)
+    {
+        auto* word = new WordItem(parsed_input[i]);
+        WordItem* found = hashTable->find(word);
+        delete word;
+    }
 }
 
-void QueryDocuments(BinarySearchTree<string, WordItem*>* tree, string& input_line)
+void QueryDocuments(BinarySearchTree<string, WordItem*>* tree, string input_line)
 {
-
-    if (input_line != "ENDOFINPUT")
+    vector<string> parsed_input = return_parsed_input(input_line);
+    for (int i = 0; i < parsed_input.size(); i++)
     {
-        // First we need to parse the input line into a vector array.
-        // For this, for the sake of keeping the codebase clean,
-        // A function will be called.
-        vector<string> parsed_input = return_parsed_input(input_line);
-
-        // Now this is important. Due to the fact that I fetch Word Items
-        // From the AVL Tree, I need to save them inside a specific format.
-        // Because of the desired console output stream format.
-        vector<textFile> file_responses;
-
-        // Case where the REMOVE command is entered
-        if (parsed_input.at(0) == "REMOVE")
-        {
-            // Loop to actually remove everything that comes after the remove keyword.
-            while (parsed_input.size() != 1)
-            {
-                tree->remove(parsed_input.at(parsed_input.size() - 1));
-                cout << parsed_input.at(parsed_input.size() - 1) << " has been REMOVED" << endl;
-                parsed_input.pop_back();
-            }
-        }
-
-        else
-        {
-            for (int i = 0; i < parsed_input.size(); i++)
-            {
-                WordItem *worditem = tree->find(parsed_input[i]);
-
-                if (worditem->word != "item_not_found")
-                {
-                    for (int i = 0; i < worditem->details.size(); i++)
-                    {
-                        if (!isInside(worditem->details[i].documentName, file_responses))
-                        {
-                            textFile textfile;
-                            textfile.fileName = worditem->details[i].documentName;
-
-                            wordcount wcount;
-                            wcount.wordname = worditem->word;
-
-                            textfile.word_count.push_back(wcount);
-
-                            file_responses.push_back(textfile);
-                        }
-
-                        else
-                        {
-                            for (int j = 0; j < file_responses.size(); j++)
-                            {
-                                if (file_responses[j].fileName == worditem->details[i].documentName)
-                                {
-                                    wordcount wcount;
-                                    wcount.wordname = worditem->word;
-                                    wcount.count = worditem->details[i].count;
-
-                                    file_responses[j].word_count.push_back(wcount);
-                                }
-                            }
-                        }
-                    }
-                }
-
-            }
-
-            if (file_responses.empty())
-            {
-                cout << "No document contains the given query" << endl << endl;
-            }
-
-            else
-            {
-                for (int i = 0; i < file_responses.size(); i++)
-                {
-                    cout << "in Document " << file_responses[i].fileName << ", ";
-
-                    while (!file_responses[i].word_count.empty())
-                    {
-                        cout << file_responses[i].word_count[file_responses[i].word_count.size() - 1].wordname << " was found "
-                             << file_responses[i].word_count[file_responses[i].word_count.size() - 1].count << " times";
-                        file_responses[i].word_count.pop_back();
-
-                        if (!file_responses[i].word_count.empty())
-                        {
-                            cout << ", ";
-                        }
-                    }
-
-                    cout << endl;
-
-                }
-
-                cout << endl;
-            }
-
-        }
+        WordItem *worditem = tree->find(parsed_input[i]);
     }
 }
 
@@ -298,7 +210,53 @@ int main()
     }
 
     // FILLING THE HASH TABLE
-    // TODO: IMPLEMENT THE HASH TABLE
+    for (int i = 0; i < file_contents.size(); i++)
+    {
+        for (int j = 0; j < file_contents[i].FileContent.size(); j++)
+        {
+            // Checking if the word appears in the tree
+            auto* word = new WordItem(file_contents[i].FileContent[j]);
+
+            if (hashtable.find(word)->word == "item_not_found")
+            {
+                hashtable.insert(word);
+                WordItem *worditem = hashtable.find(word);
+                DocumentItem documentitem;
+                documentitem.documentName = file_contents[i].FileName;
+                documentitem.count = 1;
+                worditem->details.push_back(documentitem);
+
+                hashtable.increment_unique();
+            }
+
+            else
+            {
+                WordItem *worditem = hashtable.find(word);
+                if (isInside(file_contents[i].FileName, worditem->details))
+                {
+                    for (int k = 0; k < worditem->details.size(); k++)
+                    {
+                        if (worditem->details[k].documentName == file_contents[i].FileName)
+                        {
+                            worditem->details[k].count++;
+                        }
+                    }
+                }
+
+                else
+                {
+                    DocumentItem documentitem;
+                    documentitem.documentName = file_contents[i].FileName;
+                    documentitem.count = 1;
+                    worditem->details.push_back(documentitem);
+                }
+            }
+        }
+    }
+
+    cout << endl;
+    cout << "After preprocessing, the unique word count is " << hashtable.unique_words() << ". Current load ratio is " << endl;
+    cout << hashtable.loadFactor();
 
     cin.clear();
     cin.ignore();
@@ -306,6 +264,206 @@ int main()
     string input_line;
     cout << endl << "Enter queried words in one line: ";
     getline(cin, input_line);
+
+    if (input_line != "ENDOFINPUT")
+    {
+        // First we need to parse the input line into a vector array.
+        // For this, for the sake of keeping the codebase clean,
+        // A function will be called.
+        vector<string> parsed_input = return_parsed_input(input_line);
+
+        // Now this is important. Due to the fact that I fetch Word Items
+        // From the AVL Tree, I need to save them inside a specific format.
+        // Because of the desired console output stream format.
+        vector<textFile> file_responses;
+
+        // Case where the REMOVE command is entered
+        if (parsed_input.at(0) == "REMOVE")
+        {
+            // Loop to actually remove everything that comes after the remove keyword.
+            while (parsed_input.size() != 1)
+            {
+                myTree.remove(parsed_input.at(parsed_input.size() - 1));
+                cout << parsed_input.at(parsed_input.size() - 1) << " has been REMOVED" << endl;
+                parsed_input.pop_back();
+            }
+        }
+
+        else
+        {
+            for (int i = 0; i < parsed_input.size(); i++)
+            {
+                WordItem *worditem = myTree.find(parsed_input[i]);
+
+                if (worditem->word != "item_not_found")
+                {
+                    for (int i = 0; i < worditem->details.size(); i++)
+                    {
+                        if (!isInside(worditem->details[i].documentName, file_responses))
+                        {
+                            textFile textfile;
+                            textfile.fileName = worditem->details[i].documentName;
+
+                            wordcount wcount;
+                            wcount.wordname = worditem->word;
+                            wcount.count = worditem->details[i].count;
+                            textfile.word_count.push_back(wcount);
+
+                            file_responses.push_back(textfile);
+                        }
+
+                        else
+                        {
+                            for (int j = 0; j < file_responses.size(); j++)
+                            {
+                                if (file_responses[j].fileName == worditem->details[i].documentName)
+                                {
+                                    wordcount wcount;
+                                    wcount.wordname = worditem->word;
+                                    wcount.count = worditem->details[i].count;
+
+                                    file_responses[j].word_count.push_back(wcount);
+                                }
+                            }
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+            if (file_responses.empty())
+            {
+                cout << "No document contains the given query" << endl;
+            }
+
+            else
+            {
+                for (int i = 0; i < file_responses.size(); i++)
+                {
+                    cout << "in Document " << file_responses[i].fileName << ", ";
+
+                    while (!file_responses[i].word_count.empty())
+                    {
+                        cout << file_responses[i].word_count[file_responses[i].word_count.size() - 1].wordname << " was found "
+                             << file_responses[i].word_count[file_responses[i].word_count.size() - 1].count << " times";
+                        file_responses[i].word_count.pop_back();
+
+                        if (!file_responses[i].word_count.empty())
+                        {
+                            cout << ", ";
+                        }
+                    }
+
+                    cout << endl;
+                }
+
+            }
+
+        }
+    }
+
+    // HASH TABLE
+    if (input_line != "ENDOFINPUT")
+    {
+        // First we need to parse the input line into a vector array.
+        // For this, for the sake of keeping the codebase clean,
+        // A function will be called.
+        vector<string> parsed_input = return_parsed_input(input_line);
+
+        // Now this is important. Due to the fact that I fetch Word Items
+        // From the AVL Tree, I need to save them inside a specific format.
+        // Because of the desired console output stream format.
+        vector<textFile> file_responses;
+
+        // Case where the REMOVE command is entered
+        if (parsed_input.at(0) == "REMOVE")
+        {
+            // Loop to actually remove everything that comes after the remove keyword.
+            while (parsed_input.size() != 1)
+            {
+                myTree.remove(parsed_input.at(parsed_input.size() - 1));
+                cout << parsed_input.at(parsed_input.size() - 1) << " has been REMOVED" << endl;
+                parsed_input.pop_back();
+            }
+        }
+
+        else
+        {
+            for (int i = 0; i < parsed_input.size(); i++)
+            {
+                auto* word = new WordItem(parsed_input[i]);
+                WordItem* worditem = hashtable.find(word);
+
+                if (worditem->word != "item_not_found")
+                {
+                    for (int i = 0; i < worditem->details.size(); i++)
+                    {
+                        if (!isInside(worditem->details[i].documentName, file_responses))
+                        {
+                            textFile textfile;
+                            textfile.fileName = worditem->details[i].documentName;
+
+                            wordcount wcount;
+                            wcount.wordname = worditem->word;
+                            wcount.count = worditem->details[i].count;
+                            textfile.word_count.push_back(wcount);
+
+                            file_responses.push_back(textfile);
+                        }
+
+                        else
+                        {
+                            for (int j = 0; j < file_responses.size(); j++)
+                            {
+                                if (file_responses[j].fileName == worditem->details[i].documentName)
+                                {
+                                    wordcount wcount;
+                                    wcount.wordname = worditem->word;
+                                    wcount.count = worditem->details[i].count;
+
+                                    file_responses[j].word_count.push_back(wcount);
+                                }
+                            }
+                        }
+                    }
+                }
+
+            }
+
+            if (file_responses.empty())
+            {
+                cout << "No document contains the given query" << endl;
+            }
+
+            else
+            {
+                for (int i = 0; i < file_responses.size(); i++)
+                {
+                    cout << "in Document " << file_responses[i].fileName << ", ";
+
+                    while (!file_responses[i].word_count.empty())
+                    {
+                        cout << file_responses[i].word_count[file_responses[i].word_count.size() - 1].wordname << " was found "
+                             << file_responses[i].word_count[file_responses[i].word_count.size() - 1].count << " times";
+                        file_responses[i].word_count.pop_back();
+
+                        if (!file_responses[i].word_count.empty())
+                        {
+                            cout << ", ";
+                        }
+                    }
+
+                    cout << endl;
+                }
+
+            }
+
+        }
+
+    }
 
     int k = 100;
     auto start = std::chrono::high_resolution_clock::now();
@@ -325,6 +483,6 @@ int main()
             (std::chrono::high_resolution_clock::now() - start);
     cout << "\nTime: " << HTTime.count() / k << "\n";
 
-    cout << "Speed Up: " << (BSTTime.count() / k) / (HTTime.count() / k);
+    cout << "Speed Up: " << ((double) BSTTime.count() / k) / ((double) HTTime.count() / k);
     return 0;
 }
